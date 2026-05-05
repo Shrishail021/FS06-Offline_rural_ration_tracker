@@ -169,12 +169,21 @@ router.get('/users', async (req, res) => {
 const bcrypt = require('bcryptjs');
 // POST /api/admin/users
 router.post('/users', async (req, res) => {
-  const { username, password, role, name, assignedLocation } = req.body;
+  const { username, password, role, name, assignedLocation, assignedVillage, district } = req.body;
   if (!username || !password || !role) return res.status(400).json({ success: false, message: 'Username, password and role required' });
   try {
     const db = await getDb('admin_users');
     try { await db.get(username); return res.status(409).json({ success: false, message: 'User already exists' }); } catch (e) {}
-    const doc = { _id: username, name, role, assignedLocation, password_hash: await bcrypt.hash(password, 10), isActive: true, created_at: new Date().toISOString(), last_login: null };
+    const doc = {
+      _id: username, name, role,
+      assignedLocation: assignedLocation || null,
+      assignedVillage: assignedVillage || null,
+      district: district || null,
+      password_hash: await bcrypt.hash(password, 10),
+      isActive: true,
+      created_at: new Date().toISOString(),
+      last_login: null
+    };
     await db.insert(doc);
     const { password_hash, ...safe } = doc;
     res.json({ success: true, data: safe });
@@ -188,10 +197,12 @@ router.put('/users/:id', async (req, res) => {
   try {
     const db = await getDb('admin_users');
     const doc = await db.get(req.params.id);
-    const { name, role, assignedLocation, isActive } = req.body;
+    const { name, role, assignedLocation, assignedVillage, district, isActive } = req.body;
     if (name !== undefined) doc.name = name;
     if (role !== undefined) doc.role = role;
     if (assignedLocation !== undefined) doc.assignedLocation = assignedLocation;
+    if (assignedVillage !== undefined) doc.assignedVillage = assignedVillage;
+    if (district !== undefined) doc.district = district;
     if (isActive !== undefined) doc.isActive = isActive;
     await db.insert(doc);
     const { password_hash, ...safe } = doc;
@@ -213,12 +224,15 @@ router.get('/conflicts', async (req, res) => {
   }
 });
 
-// GET /api/admin/distributions - All synced transactions
+// GET /api/admin/distributions - All synced transactions (supports ?village= and ?district= filters)
 router.get('/distributions', async (req, res) => {
   try {
     const db = await getDb('distributions');
     const result = await db.list({ include_docs: true, descending: true });
-    const distributions = result.rows.filter(r => !r.id.startsWith('_design')).map(r => r.doc);
+    let distributions = result.rows.filter(r => !r.id.startsWith('_design')).map(r => r.doc);
+    const { village, district } = req.query;
+    if (village) distributions = distributions.filter(d => d.village?.toLowerCase() === village.toLowerCase());
+    if (district) distributions = distributions.filter(d => d.district?.toLowerCase() === district.toLowerCase());
     res.json({ success: true, data: distributions });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -233,9 +247,10 @@ router.get('/dashboard', async (req, res) => {
     let activeDistributors = 0;
     try {
       const usersInfo = await adminDb.list({ include_docs: true });
-      activeDistributors = usersInfo.rows.filter(r => r.doc && r.doc.role === 'DISTRIBUTOR').length;
+      activeDistributors = usersInfo.rows.filter(r => r.doc && r.doc.role === 'DISTRIBUTOR' && r.doc.isActive !== false).length;
     } catch (e) {}
     let totalDistributed = 0;
+    let openConflicts = 0;
     let distributionData = [];
     try {
       const distInfo = await distDb.list({ include_docs: true });
@@ -243,6 +258,7 @@ router.get('/dashboard', async (req, res) => {
       distInfo.rows.forEach(r => {
         if (!r.doc._id?.startsWith('_design')) {
           totalDistributed += Number(r.doc.quantity) || 0;
+          if (r.doc.sync_status === 'CONFLICT') openConflicts++;
           const day = new Date(r.doc.createdAt).toLocaleDateString('en-US', { weekday: 'short' });
           dayCounts[day] = (dayCounts[day] || 0) + (Number(r.doc.quantity) || 0);
         }
@@ -250,7 +266,7 @@ router.get('/dashboard', async (req, res) => {
       const defaultDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
       distributionData = defaultDays.map(day => ({ name: day, dist: dayCounts[day] || 0 }));
     } catch (e) {}
-    res.json({ success: true, data: { totalDistributed: (totalDistributed / 1000).toFixed(1), activeDistributors, openConflicts: 0, chartData: distributionData } });
+    res.json({ success: true, data: { totalDistributed: totalDistributed.toFixed(1), activeDistributors, openConflicts, chartData: distributionData } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

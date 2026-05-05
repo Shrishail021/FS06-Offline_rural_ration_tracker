@@ -1,26 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Package, Users, AlertCircle, BarChart3, Loader2, RefreshCw, ShieldCheck, Database } from 'lucide-react';
+import { Package, Users, AlertCircle, BarChart3, Loader2, RefreshCw, Database, Clock } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from 'recharts';
 import axios from 'axios';
-import Sidebar from '../components/Sidebar';
 
 const BACKEND = 'http://localhost:5000';
 
 const Dashboard = () => {
-  const navigate = useNavigate();
-  const user = JSON.parse(localStorage.getItem('adminUser') || '{}');
+  // Safe parse
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem('adminUser') || '{}'); } catch { user = {}; }
+
   const [data, setData] = useState(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeNav, setActiveNav] = useState('dashboard');
 
   const fetchDashboardStats = async () => {
     setLoading(true);
     setError(null);
     try {
-      const res = await axios.get(`${BACKEND}/api/admin/dashboard`);
-      setData(res.data.data);
+      const [dashRes, distRes] = await Promise.all([
+        axios.get(`${BACKEND}/api/admin/dashboard`),
+        axios.get(`${BACKEND}/api/admin/distributions`).catch(() => ({ data: { data: [] } }))
+      ]);
+      setData(dashRes.data.data);
+      const allDist = distRes.data.data || [];
+      setPendingCount(allDist.filter(d => d.sync_status === 'PENDING').length);
     } catch (err) {
       setError('Could not reach the backend server. Is it running on port 5000?');
       console.error(err);
@@ -29,29 +34,9 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => {
-    fetchDashboardStats();
-  }, []);
+  useEffect(() => { fetchDashboardStats(); }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('adminToken');
-    localStorage.removeItem('adminUser');
-    navigate('/login');
-  };
 
-  const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: BarChart3 },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'users', label: 'User Management', icon: Users },
-    { id: 'complaints', label: 'Complaints', icon: AlertCircle },
-  ];
-
-  const grainBreakdown = [
-    { name: 'Wheat', kg: 4200 },
-    { name: 'Rice', kg: 3100 },
-    { name: 'Dal', kg: 980 },
-    { name: 'Jowar', kg: 560 },
-  ];
 
   return (
     <div className="p-8">
@@ -99,8 +84,10 @@ const Dashboard = () => {
                     <Package className="w-5 h-5 text-amber-600" />
                   </div>
                 </div>
-                <h2 className="text-3xl font-bold text-on-surface">{data.totalDistributed} <span className="text-lg text-primary">Tons</span></h2>
-                <p className="text-sm text-on-surface-variant mt-2">This month</p>
+                <h2 className="text-4xl font-black text-on-surface flex items-baseline gap-2">
+                  {data.totalDistributed} <span className="text-xl font-bold text-amber-500">Kg</span>
+                </h2>
+                <p className="text-sm text-on-surface-variant mt-2">Total across state</p>
               </div>
 
               <div className="bg-white p-6 rounded-2xl shadow-card border border-outline-variant/10">
@@ -160,7 +147,7 @@ const Dashboard = () => {
                 <p className="text-sm text-on-surface-variant mb-6">Kg distributed by type</p>
                 <div className="h-56">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={grainBreakdown} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
+                    <BarChart data={data.grainBreakdown && data.grainBreakdown.length > 0 ? data.grainBreakdown : [{ name: 'Wheat', kg: 0 }, { name: 'Rice', kg: 0 }, { name: 'Dal', kg: 0 }, { name: 'Jowar', kg: 0 }]} layout="vertical" margin={{ top: 0, right: 16, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f0e0d1" />
                       <XAxis type="number" axisLine={false} tickLine={false} tick={{ fill: '#78716c', fontSize: 11 }} />
                       <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#78716c', fontSize: 12 }} width={40} />
@@ -187,9 +174,11 @@ const Dashboard = () => {
                     <span className="text-on-surface-variant">distributions DB</span>
                     <span className="font-semibold text-green-600 flex items-center gap-1"><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse inline-block"></span> Active</span>
                   </div>
-                  <div className="flex justify-between py-2">
-                    <span className="text-on-surface-variant">Sync Mode</span>
-                    <span className="font-semibold text-primary">Live Replication</span>
+                  <div className="flex justify-between py-2 border-b border-outline-variant/10">
+                    <span className="text-on-surface-variant">Pending Sync Records</span>
+                    <span className={`font-semibold flex items-center gap-1 ${pendingCount > 0 ? 'text-amber-600' : 'text-green-600'}`}>
+                      <Clock className="w-3.5 h-3.5" />{pendingCount} records
+                    </span>
                   </div>
                 </div>
               </div>

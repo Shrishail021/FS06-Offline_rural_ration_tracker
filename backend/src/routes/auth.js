@@ -68,12 +68,15 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials' });
     }
 
-    // Generate JWT
+    // Generate JWT — include location so distributor can scope their data
     const payload = {
       user: {
         username: user._id,
         role: user.role,
-        name: user.name
+        name: user.name,
+        assignedLocation: user.assignedLocation || null,
+        assignedVillage: user.assignedVillage || null,
+        district: user.district || null,
       }
     };
 

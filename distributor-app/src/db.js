@@ -14,7 +14,8 @@ export const getDeviceId = () => {
   return deviceId;
 };
 
-const COUCHDB_URL = 'http://admin:shri@127.0.0.1:5984';
+const COUCHDB_URL = 'http://127.0.0.1:5984';
+const authConfig = { auth: { username: 'admin', password: 'shri' } };
 
 export const distributionsDb = new PouchDB('distributions');
 export const cardsDb = new PouchDB('ration_cards');
@@ -36,16 +37,26 @@ const initDb = async () => {
 };
 initDb();
 
+// Global sync handlers
+let syncHandlers = [];
+
 // Live sync with CouchDB
 export const startLiveSync = (onStatusChange) => {
-  const remoteDistributions = new PouchDB(`${COUCHDB_URL}/distributions`);
-  const remoteComplaints = new PouchDB(`${COUCHDB_URL}/complaints`);
-  const remoteShipments = new PouchDB(`${COUCHDB_URL}/shipments`);
+  if (syncHandlers.length > 0) {
+    // Already syncing
+    return syncHandlers[0];
+  }
 
-  // Pull shipments down to local (read-only for distributor)
-  PouchDB.replicate(remoteShipments, shipmentsDb, { live: true, retry: true });
+  const remoteDistributions = new PouchDB(`${COUCHDB_URL}/distributions`, authConfig);
+  const remoteComplaints = new PouchDB(`${COUCHDB_URL}/complaints`, authConfig);
+  const remoteShipments = new PouchDB(`${COUCHDB_URL}/shipments`, authConfig);
+  const remoteCards = new PouchDB(`${COUCHDB_URL}/ration_cards`, authConfig);
 
-  PouchDB.sync(complaintsDb, remoteComplaints, { live: true, retry: true })
+  // Pull remote data down to local (read-only for distributor offline usage)
+  syncHandlers.push(PouchDB.replicate(remoteShipments, shipmentsDb, { live: true, retry: true }));
+  syncHandlers.push(PouchDB.replicate(remoteCards, cardsDb, { live: true, retry: true }));
+
+  const complaintsSync = PouchDB.sync(complaintsDb, remoteComplaints, { live: true, retry: true })
     .on('change', async (info) => {
       // Update sync_status of locally synced docs
       if (info.direction === 'push') {
@@ -58,8 +69,9 @@ export const startLiveSync = (onStatusChange) => {
         }
       }
     });
+  syncHandlers.push(complaintsSync);
 
-  return PouchDB.sync(distributionsDb, remoteDistributions, { live: true, retry: true })
+  const distributionsSync = PouchDB.sync(distributionsDb, remoteDistributions, { live: true, retry: true })
     .on('change', async (info) => { 
       if (info.direction === 'push') {
         const docs = info.change.docs;
@@ -80,6 +92,15 @@ export const startLiveSync = (onStatusChange) => {
     .on('paused', err => { if (onStatusChange) onStatusChange('paused', err); })
     .on('active', () => { if (onStatusChange) onStatusChange('active'); })
     .on('error', err => { if (onStatusChange) onStatusChange('error', err); });
+
+  syncHandlers.push(distributionsSync);
+  
+  return {
+    cancel: () => {
+      syncHandlers.forEach(h => h.cancel && h.cancel());
+      syncHandlers = [];
+    }
+  };
 };
 
 // Save distribution offline with dedup check
@@ -120,6 +141,50 @@ export const saveDistributionOffline = async (distributionData) => {
   });
 
   return transaction;
+};
+
+// Save a multi-grain basket
+export const saveBasketOffline = async (baseData, basket) => {
+  const deviceId = getDeviceId();
+  const now = new Date();
+  const month = now.getMonth() + 1;
+  const year = now.getFullYear();
+
+  // Check local monthly dedup
+  const dupCheck = await logsDb.find({
+    selector: { rationCardId: baseData.rationCardId, month, year }
+  });
+  if (dupCheck.docs.length > 0) {
+    throw new Error('ALREADY_DISTRIBUTED: This ration card has already been served this month.');
+  }
+
+  const batchId = `${deviceId}_${now.getTime()}_${baseData.rationCardId}`;
+  
+  const docs = basket.map((item, idx) => ({
+    _id: `${batchId}_${idx}`,
+    ...baseData,
+    grainType: item.grainType,
+    quantity: item.quantity,
+    deviceId,
+    transactionId: batchId,
+    month, year,
+    sync_status: 'PENDING',
+    createdAt: now.toISOString()
+  }));
+
+  for (const doc of docs) {
+    await distributionsDb.put(doc);
+  }
+
+  await logsDb.put({
+    _id: `log_${baseData.rationCardId}_${month}_${year}`,
+    rationCardId: baseData.rationCardId,
+    month, year,
+    transactionId: batchId,
+    distributedAt: now.toISOString()
+  });
+
+  return { transactionId: batchId, docs };
 };
 
 export const getPendingDistributions = async () => {

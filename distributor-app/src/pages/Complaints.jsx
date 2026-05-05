@@ -106,6 +106,19 @@ const Complaints = () => {
               <AlertTriangle className="w-6 h-6 text-error" /> Complaints
             </h1>
           </div>
+          <button 
+            onClick={async () => {
+              if (window.confirm('Clear all local complaints? This will delete them from your device.')) {
+                try {
+                  await complaintsDb.destroy();
+                  window.location.reload();
+                } catch(e) { console.error(e); }
+              }
+            }}
+            className="text-sm font-bold text-red-600 hover:text-red-800 bg-red-50 px-3 py-1.5 rounded-lg"
+          >
+            Clear Local Data
+          </button>
         </div>
 
         {msg && (

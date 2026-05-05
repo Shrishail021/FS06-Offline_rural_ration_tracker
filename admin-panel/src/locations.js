@@ -1,6 +1,7 @@
-// Karnataka Location Hierarchy Data
-// State → District → Taluk → Village
-const KARNATAKA_LOCATIONS = [
+// Karnataka Location Hierarchy — shared across both frontend apps
+// State → District → Taluk → Villages
+
+export const KARNATAKA_LOCATIONS = [
   {
     state: 'Karnataka',
     districts: [
@@ -77,4 +78,50 @@ const KARNATAKA_LOCATIONS = [
   },
 ];
 
-module.exports = { KARNATAKA_LOCATIONS };
+/** Flat list of all { code, state, district, taluk, village } */
+export const getFlatLocations = () => {
+  const flat = [];
+  KARNATAKA_LOCATIONS[0].districts.forEach((dist) => {
+    dist.taluks.forEach((taluk) => {
+      taluk.villages.forEach((village, vi) => {
+        flat.push({
+          code: `KA-${dist.code}-${taluk.code}-${String(vi + 1).padStart(3, '0')}`,
+          state: 'Karnataka',
+          district: dist.name,
+          taluk: taluk.name,
+          village,
+          label: `${village} (${dist.name})`,
+        });
+      });
+    });
+  });
+  return flat;
+};
+
+/** All unique district names */
+export const getDistricts = () => KARNATAKA_LOCATIONS[0].districts.map((d) => d.name);
+
+/** Villages for a given district name */
+export const getVillagesForDistrict = (districtName) => {
+  const district = KARNATAKA_LOCATIONS[0].districts.find((d) => d.name === districtName);
+  if (!district) return [];
+  return district.taluks.flatMap((t) => t.villages);
+};
+
+/** Flat district→villages map */
+export const KA_DISTRICTS = Object.fromEntries(
+  KARNATAKA_LOCATIONS[0].districts.map((d) => [
+    d.name,
+    d.taluks.flatMap((t) => t.villages),
+  ])
+);
+
+/** Given a village name, find its district */
+export const getDistrictForVillage = (villageName) => {
+  for (const district of KARNATAKA_LOCATIONS[0].districts) {
+    for (const taluk of district.taluks) {
+      if (taluk.villages.includes(villageName)) return district.name;
+    }
+  }
+  return null;
+};

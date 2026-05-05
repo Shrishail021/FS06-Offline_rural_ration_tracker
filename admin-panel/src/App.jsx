@@ -8,6 +8,7 @@ import Complaints from './pages/Complaints';
 import RationCards from './pages/RationCards';
 import Logistics from './pages/Logistics';
 import Transactions from './pages/Transactions';
+import DistributorList from './pages/DistributorList';
 import Sidebar from './components/Sidebar';
 
 const PrivateRoute = ({ children }) => {
@@ -38,6 +39,7 @@ function App() {
           <Route path="/complaints" element={<PrivateRoute><AdminLayout><Complaints /></AdminLayout></PrivateRoute>} />
           <Route path="/ration-cards" element={<PrivateRoute><AdminLayout><RationCards /></AdminLayout></PrivateRoute>} />
           <Route path="/logistics" element={<PrivateRoute><AdminLayout><Logistics /></AdminLayout></PrivateRoute>} />
+          <Route path="/distributors" element={<PrivateRoute><AdminLayout><DistributorList /></AdminLayout></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>

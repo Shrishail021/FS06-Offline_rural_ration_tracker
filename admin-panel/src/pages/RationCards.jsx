@@ -1,16 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Search, Plus, CheckCircle, XCircle, Loader2, User } from 'lucide-react';
+import { CreditCard, Search, Plus, CheckCircle, XCircle, Loader2, User, MapPin, RefreshCw } from 'lucide-react';
 import axios from 'axios';
+import { KA_DISTRICTS, getDistricts } from '../locations';
 
 const BACKEND = 'http://localhost:5000';
-
-const KA_DISTRICTS = {
-  'Dharwad': ['Hubli Central', 'Gokul', 'Vidyanagar', 'Keshwapur', 'Dharwad City', 'Amargol', 'Kalghatgi'],
-  'Belagavi': ['Belagavi North', 'Belagavi South', 'Kakati', 'Hukeri', 'Gokak', 'Mudalagi', 'Nippani'],
-  'Gadag': ['Gadag City', 'Betgeri', 'Lakshmeshwar', 'Ron', 'Gajendragad'],
-  'Mysuru': ['Mysuru City', 'Vijayanagara', 'Hebbal', 'Hunsur', 'Nanjangud'],
-  'Ballari': ['Ballari City', 'Kampli', 'Siruguppa', 'Hospet', 'Hampi'],
-};
 
 const RationCards = () => {
   const [cards, setCards] = useState([]);
@@ -18,7 +11,8 @@ const RationCards = () => {
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState(null);
-  const [form, setForm] = useState({ cardNumber: '', headName: '', district: 'Dharwad', village: 'Hubli Central', members: [{ name: '', age: '', aadhaar: '', alive: true }] });
+  const defaultDistrict = getDistricts()[0];
+  const [form, setForm] = useState({ cardNumber: '', headName: '', district: defaultDistrict, village: KA_DISTRICTS[defaultDistrict]?.[0] || '', members: [{ name: '', age: '', aadhaar: '', alive: true }] });
 
   const fetchCards = async () => {
     setLoading(true);
@@ -37,7 +31,8 @@ const RationCards = () => {
       await axios.post(`${BACKEND}/api/admin/ration-cards`, form);
       setMsg({ type: 'success', text: `Ration card ${form.cardNumber} created!` });
       setShowForm(false);
-      setForm({ cardNumber: '', headName: '', district: 'Dharwad', village: 'Hubli Central', members: [{ name: '', age: '', aadhaar: '', alive: true }] });
+      const dd = getDistricts()[0];
+      setForm({ cardNumber: '', headName: '', district: dd, village: KA_DISTRICTS[dd]?.[0] || '', members: [{ name: '', age: '', aadhaar: '', alive: true }] });
       fetchCards();
     } catch (err) {
       setMsg({ type: 'error', text: err.response?.data?.message || 'Failed to create card' });

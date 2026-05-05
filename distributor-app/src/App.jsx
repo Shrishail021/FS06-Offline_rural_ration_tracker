@@ -14,14 +14,25 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
-const DistributorLayout = ({ children }) => (
-  <div className="flex min-h-screen bg-surface-variant/30">
-    <Sidebar />
-    <main className="flex-1 overflow-y-auto">
-      {children}
-    </main>
-  </div>
-);
+import { startLiveSync } from './db';
+
+const DistributorLayout = ({ children }) => {
+  React.useEffect(() => {
+    // Start global sync so that ration_cards and shipments are always fetched 
+    // in the background while online.
+    const syncHandler = startLiveSync();
+    return () => syncHandler && syncHandler.cancel();
+  }, []);
+
+  return (
+    <div className="flex min-h-screen bg-surface-variant/30">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto">
+        {children}
+      </main>
+    </div>
+  );
+};
 
 function App() {
   return (

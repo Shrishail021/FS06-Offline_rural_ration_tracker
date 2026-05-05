@@ -7,6 +7,11 @@ import OfflineBanner from '../components/OfflineBanner';
 const COUCHDB = 'http://admin:shri@127.0.0.1:5984';
 
 const Sync = () => {
+  // Safe user parse
+  let user = {};
+  try { user = JSON.parse(localStorage.getItem('user') || '{}'); } catch { user = {}; }
+  const assignedVillage = user.assignedVillage || null;
+
   const [allTx, setAllTx] = useState([]);
   const [loading, setLoading] = useState(true);
   const [syncStatus, setSyncStatus] = useState('idle');
@@ -27,12 +32,16 @@ const Sync = () => {
     setLoading(true);
     try {
       const all = await getAllDistributions();
-      setAllTx(all);
-      setPendingCount(all.filter(t => t.sync_status === 'PENDING').length);
-      setSyncedCount(all.filter(t => t.sync_status === 'SYNCED').length);
+      // Scope to distributor's village if assigned
+      const scoped = assignedVillage
+        ? all.filter(t => t.village?.toLowerCase() === assignedVillage.toLowerCase())
+        : all;
+      setAllTx(scoped);
+      setPendingCount(scoped.filter(t => t.sync_status === 'PENDING').length);
+      setSyncedCount(scoped.filter(t => t.sync_status === 'SYNCED').length);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
-  }, []);
+  }, [assignedVillage]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
@@ -76,7 +85,12 @@ const Sync = () => {
         <div className="flex justify-between items-center mb-6">
           <div>
             <h1 className="text-2xl font-bold text-on-surface">Sync Data</h1>
-            <p className="text-sm text-on-surface-variant mt-1">Push offline transactions to the central CouchDB server.</p>
+            <p className="text-sm text-on-surface-variant mt-1">
+              {assignedVillage
+                ? <>Showing transactions for <strong>{assignedVillage}</strong>. Push to central CouchDB when online.</>
+                : 'Push offline transactions to the central CouchDB server.'
+              }
+            </p>
           </div>
           <Link to="/dashboard" className="text-primary hover:underline text-sm font-semibold">← Back</Link>
         </div>

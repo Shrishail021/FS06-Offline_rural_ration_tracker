@@ -1,0 +1,361 @@
+{
+  "database_design": {
+    "name": "RationDistributionDB",
+    "version": "1.0",
+    "description": "Offline-first ration distribution system using PouchDB/CouchDB",
+    "note": "This uses document-based storage (JSON) - optimized for PouchDB/CouchDB"
+  },
+  
+  "documents": {
+    
+    "location_master": {
+      "_id": "location:{state}:{district}:{taluk}:{village}",
+      "type": "location",
+      "hierarchy": {
+        "state": "Karnataka",
+        "state_code": "KA",
+        "district": "Dharwad",
+        "district_code": "DH",
+        "taluk": "Hubli",
+        "taluk_code": "HU",
+        "village": "SampleVillage",
+        "village_code": "001"
+      },
+      "location_name": "KA-DH-HU-001",
+      "coordinates": {
+        "lat": 15.3647,
+        "lng": 75.1240
+      },
+      "population": 5000,
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-01-01T00:00:00Z"
+    },
+
+    "admin_user": {
+      "_id": "admin:email@example.com",
+      "type": "admin",
+      "name": "Admin Name",
+      "email": "admin@example.com",
+      "password_hash": "$2b$12$...",
+      "role": "STATE_ADMIN|DISTRICT_ADMIN|DISTRIBUTOR",
+      "assigned_location": "KA-DH-HU-001",
+      "assigned_villages": ["KA-DH-HU-001", "KA-DH-HU-002"],
+      "is_active": true,
+      "device_id": "DEV123ABC456",
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-01-01T00:00:00Z",
+      "_rev": "1-abc123"
+    },
+
+    "ration_card": {
+      "_id": "ration:KA-DH-HU-001:RC0001",
+      "type": "ration_card",
+      "ration_card_number": "KA/DH/HU/001/2026/0001",
+      "location": "KA-DH-HU-001",
+      "head_name": "John Doe",
+      "head_aadhaar": "1234-5678-9012",
+      "family_size": 5,
+      "is_active": true,
+      "ration_category": "APL|BPL|AAY",
+      "family_members": [
+        {
+          "name": "John Doe",
+          "aadhaar_number": "1234-5678-9012",
+          "age": 45,
+          "relation": "self",
+          "is_alive": true
+        },
+        {
+          "name": "Jane Doe",
+          "aadhaar_number": "1234-5678-9013",
+          "age": 42,
+          "relation": "spouse",
+          "is_alive": true
+        }
+      ],
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-01-01T00:00:00Z",
+      "_rev": "1-xyz789"
+    },
+
+    "grain_master": {
+      "_id": "grain:RICE_001",
+      "type": "grain",
+      "name": "Rice (White)",
+      "code": "RICE_001",
+      "unit": "kg",
+      "description": "White rice for public distribution",
+      "created_at": "2026-01-01T00:00:00Z"
+    },
+
+    "stock_inventory": {
+      "_id": "stock:KA-DH-HU-001:RICE_001",
+      "type": "stock",
+      "location": "KA-DH-HU-001",
+      "grain_code": "RICE_001",
+      "grain_name": "Rice (White)",
+      "quantity": 5000,
+      "unit": "kg",
+      "price_per_unit": 25,
+      "total_value": 125000,
+      "last_updated": "2026-01-01T00:00:00Z",
+      "batch_id": "BATCH_001",
+      "_rev": "1-stock123"
+    },
+
+    "shipment": {
+      "_id": "shipment:SHIP20260505001",
+      "type": "shipment",
+      "shipment_id": "SHIP20260505001",
+      "grain_code": "RICE_001",
+      "grain_name": "Rice (White)",
+      "quantity": 1000,
+      "unit": "kg",
+      "from_location": "STATE_WAREHOUSE",
+      "to_location": "KA-DH-HU-001",
+      "status": "PENDING|IN_TRANSIT|DELIVERED",
+      "scheduled_date": "2026-05-10T00:00:00Z",
+      "actual_delivery_date": null,
+      "created_by": "admin@example.com",
+      "created_at": "2026-05-05T10:30:00Z",
+      "updated_at": "2026-05-05T10:30:00Z",
+      "_rev": "1-ship001"
+    },
+
+    "distribution_transaction": {
+      "_id": "distribution:DEV123_20260505_RC0001",
+      "type": "distribution",
+      "transaction_id": "DEV123_20260505_143022_RC0001",
+      "device_id": "DEV123",
+      "ration_card_id": "ration:KA-DH-HU-001:RC0001",
+      "ration_card_number": "KA/DH/HU/001/2026/0001",
+      "location": "KA-DH-HU-001",
+      "distributor_id": "admin:distributor@example.com",
+      "distributor_name": "Distributor Name",
+      "grain_code": "RICE_001",
+      "grain_name": "Rice (White)",
+      "quantity": 15,
+      "unit": "kg",
+      "distribution_month": 5,
+      "distribution_year": 2026,
+      "distribution_date": "2026-05-05T14:30:22Z",
+      "authenticated_member": {
+        "name": "John Doe",
+        "aadhaar_number": "1234-5678-9012",
+        "auth_status": "SUCCESS",
+        "auth_time": "2026-05-05T14:30:00Z"
+      },
+      "sync_status": "PENDING|SYNCED|CONFLICT|FAILED",
+      "sync_attempts": 0,
+      "last_sync_attempt": null,
+      "conflict_reason": null,
+      "notes": "Regular monthly distribution",
+      "created_at": "2026-05-05T14:30:22Z",
+      "updated_at": "2026-05-05T14:30:22Z",
+      "_rev": "1-dist001"
+    },
+
+    "distribution_log_monthly": {
+      "_id": "distlog:KA-DH-HU-001:RC0001:2026:05",
+      "type": "distribution_log",
+      "location": "KA-DH-HU-001",
+      "ration_card_id": "ration:KA-DH-HU-001:RC0001",
+      "month": 5,
+      "year": 2026,
+      "month_year": "2026-05",
+      "last_distribution_date": "2026-05-05T14:30:22Z",
+      "total_quantity_distributed": 15,
+      "grain_codes": ["RICE_001"],
+      "distribution_count": 1,
+      "sync_status": "SYNCED",
+      "created_at": "2026-05-05T14:30:22Z",
+      "updated_at": "2026-05-05T14:30:22Z",
+      "_rev": "1-dlog001"
+    },
+
+    "sync_queue": {
+      "_id": "sync:DEV123_20260505_143022_RC0001",
+      "type": "sync_queue",
+      "transaction_id": "DEV123_20260505_143022_RC0001",
+      "device_id": "DEV123",
+      "action_type": "CREATE|UPDATE|DELETE",
+      "related_type": "distribution",
+      "payload": {
+        "type": "distribution",
+        "transaction_id": "DEV123_20260505_143022_RC0001",
+        "_id": "distribution:DEV123_20260505_RC0001"
+      },
+      "status": "PENDING|SYNCED|FAILED|CONFLICT",
+      "retry_count": 0,
+      "max_retries": 3,
+      "last_attempt": null,
+      "error_message": null,
+      "created_at": "2026-05-05T14:30:22Z",
+      "sync_timestamp": null,
+      "_rev": "1-sync001"
+    },
+
+    "complaint_report": {
+      "_id": "complaint:COMP20260505001",
+      "type": "complaint",
+      "complaint_id": "COMP20260505001",
+      "complaint_type": "DEAD_PERSON|FRAUD|DUPLICATE|EXPIRED|OTHER",
+      "distributor_id": "admin:distributor@example.com",
+      "distributor_name": "Distributor Name",
+      "location": "KA-DH-HU-001",
+      "ration_card_id": "ration:KA-DH-HU-001:RC0001",
+      "ration_card_number": "KA/DH/HU/001/2026/0001",
+      "member_name": "John Doe",
+      "member_aadhaar": "1234-5678-9012",
+      "message": "Member deceased - stop ration distribution",
+      "evidence_url": null,
+      "status": "OPEN|IN_REVIEW|RESOLVED|REJECTED",
+      "priority": "LOW|MEDIUM|HIGH",
+      "created_at": "2026-05-05T15:00:00Z",
+      "resolved_at": null,
+      "resolved_by": null,
+      "resolution_notes": null,
+      "_rev": "1-comp001"
+    },
+
+    "conflict_record": {
+      "_id": "conflict:DEV123_20260505_RC0001_conflict",
+      "type": "conflict",
+      "transaction_id": "DEV123_20260505_143022_RC0001",
+      "ration_card_id": "ration:KA-DH-HU-001:RC0001",
+      "conflict_type": "DUPLICATE_MONTH|DUPLICATE_TRANSACTION|SYNC_MISMATCH",
+      "conflict_reason": "Duplicate distribution in same month detected",
+      "original_transaction_id": "DEV456_20260505_143000_RC0001",
+      "conflicting_transaction_id": "DEV123_20260505_143022_RC0001",
+      "resolution_status": "PENDING|MANUAL_REVIEW|RESOLVED|IGNORED",
+      "resolved_by": null,
+      "resolved_at": null,
+      "created_at": "2026-05-05T14:30:22Z",
+      "updated_at": "2026-05-05T14:30:22Z",
+      "_rev": "1-conflict001"
+    },
+
+    "device_metadata": {
+      "_id": "device:DEV123",
+      "type": "device",
+      "device_id": "DEV123",
+      "device_name": "Distributor Device 1",
+      "assigned_admin": "admin:distributor@example.com",
+      "assigned_location": "KA-DH-HU-001",
+      "os": "Android|iOS|Windows",
+      "app_version": "1.0.0",
+      "last_sync": "2026-05-05T10:00:00Z",
+      "sync_status": "SYNCED|PENDING|FAILED",
+      "pending_transactions": 5,
+      "is_active": true,
+      "created_at": "2026-01-01T00:00:00Z",
+      "updated_at": "2026-05-05T10:00:00Z",
+      "_rev": "1-dev001"
+    }
+  },
+
+  "design_documents": {
+    "location_views": {
+      "_id": "_design/locations",
+      "views": {
+        "by_code": {
+          "map": "function(doc) { if(doc.type === 'location') emit(doc.location_name, doc); }"
+        },
+        "by_district": {
+          "map": "function(doc) { if(doc.type === 'location') emit(doc.hierarchy.district, doc); }"
+        },
+        "by_taluk": {
+          "map": "function(doc) { if(doc.type === 'location') emit([doc.hierarchy.district, doc.hierarchy.taluk], doc); }"
+        }
+      }
+    },
+
+    "distribution_views": {
+      "_id": "_design/distributions",
+      "views": {
+        "by_ration_card": {
+          "map": "function(doc) { if(doc.type === 'distribution') emit(doc.ration_card_id, doc); }"
+        },
+        "by_location_date": {
+          "map": "function(doc) { if(doc.type === 'distribution') emit([doc.location, doc.distribution_date], doc); }"
+        },
+        "by_month": {
+          "map": "function(doc) { if(doc.type === 'distribution') emit([doc.distribution_year, doc.distribution_month], doc); }"
+        },
+        "by_sync_status": {
+          "map": "function(doc) { if(doc.type === 'distribution') emit(doc.sync_status, doc); }"
+        },
+        "by_transaction_id": {
+          "map": "function(doc) { if(doc.type === 'distribution') emit(doc.transaction_id, doc); }"
+        }
+      }
+    },
+
+    "sync_queue_views": {
+      "_id": "_design/sync",
+      "views": {
+        "pending": {
+          "map": "function(doc) { if(doc.type === 'sync_queue' && doc.status === 'PENDING') emit(doc.created_at, doc); }"
+        },
+        "by_device": {
+          "map": "function(doc) { if(doc.type === 'sync_queue') emit(doc.device_id, doc); }"
+        },
+        "failed": {
+          "map": "function(doc) { if(doc.type === 'sync_queue' && doc.status === 'FAILED') emit(doc.last_attempt, doc); }"
+        }
+      }
+    },
+
+    "complaint_views": {
+      "_id": "_design/complaints",
+      "views": {
+        "by_status": {
+          "map": "function(doc) { if(doc.type === 'complaint') emit(doc.status, doc); }"
+        },
+        "by_location": {
+          "map": "function(doc) { if(doc.type === 'complaint') emit([doc.location, doc.created_at], doc); }"
+        },
+        "by_type": {
+          "map": "function(doc) { if(doc.type === 'complaint') emit([doc.complaint_type, doc.status], doc); }"
+        }
+      }
+    }
+  },
+
+  "indexes": {
+    "pouchdb_indexes": [
+      {
+        "name": "by_transaction_id",
+        "fields": ["type", "transaction_id"]
+      },
+      {
+        "name": "by_ration_month_year",
+        "fields": ["type", "ration_card_id", "distribution_year", "distribution_month"]
+      },
+      {
+        "name": "by_device_date",
+        "fields": ["type", "device_id", "created_at"]
+      },
+      {
+        "name": "by_sync_status",
+        "fields": ["type", "sync_status"]
+      },
+      {
+        "name": "conflicts_by_ration",
+        "fields": ["type", "ration_card_id", "conflict_type"]
+      }
+    ]
+  },
+
+  "replication_settings": {
+    "continuous": true,
+    "live": true,
+    "retry": true,
+    "batch_size": 100,
+    "batches_limit": 5,
+    "filter": "locations/sync_filter",
+    "checkpoint_interval": 5000,
+    "checkpoint_restart_on_resume": true,
+    "conflict_strategy": "version_vector"
+  }
+}

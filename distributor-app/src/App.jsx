@@ -14,13 +14,13 @@ const PrivateRoute = ({ children }) => {
   return token ? children : <Navigate to="/login" replace />;
 };
 
-import { startLiveSync } from './db';
+import { startBackgroundPull } from './db';
 
 const DistributorLayout = ({ children }) => {
   React.useEffect(() => {
     // Start global sync so that ration_cards and shipments are always fetched 
     // in the background while online.
-    const syncHandler = startLiveSync();
+    const syncHandler = startBackgroundPull();
     return () => syncHandler && syncHandler.cancel();
   }, []);
 

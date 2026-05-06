@@ -40,66 +40,63 @@ initDb();
 // Global sync handlers
 let syncHandlers = [];
 
-// Live sync with CouchDB
-export const startLiveSync = (onStatusChange) => {
-  if (syncHandlers.length > 0) {
-    // Already syncing
-    return syncHandlers[0];
-  }
+// Pull read-only data in the background continuously
+export const startBackgroundPull = () => {
+  if (syncHandlers.length > 0) return syncHandlers[0];
 
-  const remoteDistributions = new PouchDB(`${COUCHDB_URL}/distributions`, authConfig);
-  const remoteComplaints = new PouchDB(`${COUCHDB_URL}/complaints`, authConfig);
   const remoteShipments = new PouchDB(`${COUCHDB_URL}/shipments`, authConfig);
   const remoteCards = new PouchDB(`${COUCHDB_URL}/ration_cards`, authConfig);
 
-  // Pull remote data down to local (read-only for distributor offline usage)
   syncHandlers.push(PouchDB.replicate(remoteShipments, shipmentsDb, { live: true, retry: true }));
   syncHandlers.push(PouchDB.replicate(remoteCards, cardsDb, { live: true, retry: true }));
 
-  const complaintsSync = PouchDB.sync(complaintsDb, remoteComplaints, { live: true, retry: true })
-    .on('change', async (info) => {
-      // Update sync_status of locally synced docs
-      if (info.direction === 'push') {
-        const docs = info.change.docs;
-        for (const doc of docs) {
-          if (doc.sync_status === 'PENDING') {
-            doc.sync_status = 'SYNCED';
-            await complaintsDb.put(doc);
-          }
-        }
-      }
-    });
-  syncHandlers.push(complaintsSync);
-
-  const distributionsSync = PouchDB.sync(distributionsDb, remoteDistributions, { live: true, retry: true })
-    .on('change', async (info) => { 
-      if (info.direction === 'push') {
-        const docs = info.change.docs;
-        for (const doc of docs) {
-          if (doc.sync_status === 'PENDING') {
-            try {
-              const localDoc = await distributionsDb.get(doc._id);
-              localDoc.sync_status = 'SYNCED';
-              await distributionsDb.put(localDoc);
-            } catch (err) {
-              console.error('Failed to update sync_status:', err);
-            }
-          }
-        }
-      }
-      if (onStatusChange) onStatusChange('syncing', info); 
-    })
-    .on('paused', err => { if (onStatusChange) onStatusChange('paused', err); })
-    .on('active', () => { if (onStatusChange) onStatusChange('active'); })
-    .on('error', err => { if (onStatusChange) onStatusChange('error', err); });
-
-  syncHandlers.push(distributionsSync);
-  
   return {
     cancel: () => {
       syncHandlers.forEach(h => h.cancel && h.cancel());
       syncHandlers = [];
     }
+  };
+};
+
+// Push local modifications manually when the user clicks Sync
+export const pushManualSync = (onStatusChange) => {
+  if (onStatusChange) onStatusChange('syncing');
+  const remoteDistributions = new PouchDB(`${COUCHDB_URL}/distributions`, authConfig);
+  const remoteComplaints = new PouchDB(`${COUCHDB_URL}/complaints`, authConfig);
+
+  PouchDB.replicate(complaintsDb, remoteComplaints).on('change', async (info) => {
+    const docs = info.docs;
+    for (const doc of docs) {
+      if (doc.sync_status === 'PENDING') {
+        try {
+          const local = await complaintsDb.get(doc._id);
+          local.sync_status = 'SYNCED';
+          await complaintsDb.put(local);
+        } catch(e) {}
+      }
+    }
+  });
+
+  const distHandler = PouchDB.replicate(distributionsDb, remoteDistributions)
+    .on('change', async (info) => {
+      const docs = info.docs;
+      for (const doc of docs) {
+        if (doc.sync_status === 'PENDING') {
+          try {
+            const localDoc = await distributionsDb.get(doc._id);
+            localDoc.sync_status = 'SYNCED';
+            await distributionsDb.put(localDoc);
+          } catch (err) {
+            console.error('Failed to update sync_status:', err);
+          }
+        }
+      }
+    })
+    .on('complete', () => { if (onStatusChange) onStatusChange('complete'); })
+    .on('error', err => { if (onStatusChange) onStatusChange('error', err); });
+    
+  return {
+    cancel: () => distHandler.cancel()
   };
 };
 

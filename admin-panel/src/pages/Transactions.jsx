@@ -59,13 +59,31 @@ const Transactions = () => {
     CONFLICT: <span className="text-xs font-bold px-2 py-1 rounded-full bg-red-100 text-red-700 flex items-center gap-1"><XCircle className="w-3 h-3" />CONFLICT</span>,
   };
 
+  const uniqueTxns = new Set(transactions.map(t => t.transactionId || t._id)).size;
+  const uniqueSynced = new Set(transactions.filter(t => t.sync_status === 'SYNCED').map(t => t.transactionId || t._id)).size;
+  const uniquePending = new Set(transactions.filter(t => t.sync_status === 'PENDING').map(t => t.transactionId || t._id)).size;
+  const uniqueConflicts = new Set(transactions.filter(t => t.sync_status === 'CONFLICT').map(t => t.transactionId || t._id)).size;
+
   const stats = {
-    total: transactions.length,
-    synced: transactions.filter(t => t.sync_status === 'SYNCED').length,
-    pending: transactions.filter(t => t.sync_status === 'PENDING').length,
-    conflicts: transactions.filter(t => t.sync_status === 'CONFLICT').length,
+    total: uniqueTxns,
+    synced: uniqueSynced,
+    pending: uniquePending,
+    conflicts: uniqueConflicts,
     totalKg: transactions.reduce((s, t) => s + (Number(t.quantity) || 0), 0),
   };
+
+  const groupedFiltered = Object.values(filtered.reduce((acc, t) => {
+    const groupId = t.transactionId || t._id;
+    if (!acc[groupId]) {
+      acc[groupId] = {
+        groupId, transactionId: t.transactionId || t._id, rationCardId: t.rationCardId,
+        member: t.member, village: t.village, district: t.district,
+        createdAt: t.createdAt, sync_status: t.sync_status, items: []
+      };
+    }
+    acc[groupId].items.push({ grainType: t.grainType, quantity: t.quantity, _id: t._id });
+    return acc;
+  }, {}));
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
@@ -162,14 +180,14 @@ const Transactions = () => {
               )}
             </div>
             <span className="ml-auto text-xs font-bold bg-surface-variant/50 px-3 py-1 rounded-full text-on-surface-variant self-center">
-              {filtered.length} results
+              {groupedFiltered.length} results
             </span>
           </div>
         </div>
 
         {loading ? (
           <div className="flex justify-center py-16"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
-        ) : filtered.length === 0 ? (
+        ) : groupedFiltered.length === 0 ? (
           <div className="text-center py-16 text-on-surface-variant">
             <List className="w-12 h-12 mx-auto mb-3 opacity-30" />
             <p>No transactions found{filterVillage ? ` for ${filterVillage}` : ''}.</p>
@@ -184,34 +202,40 @@ const Transactions = () => {
                   <th className="px-5 py-3 text-left">Ration Card</th>
                   <th className="px-5 py-3 text-left">Beneficiary</th>
                   <th className="px-5 py-3 text-left">Village / District</th>
-                  <th className="px-5 py-3 text-right">Grain</th>
-                  <th className="px-5 py-3 text-right">Qty</th>
+                  <th className="px-5 py-3 text-right">Payload</th>
                   <th className="px-5 py-3 text-left">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-outline-variant/10">
-                {filtered.map(t => (
-                  <tr key={t._id} className="hover:bg-surface-variant/10 transition-colors">
+                {groupedFiltered.map(group => (
+                  <tr key={group.groupId} className="hover:bg-surface-variant/10 transition-colors">
                     <td className="px-5 py-3 text-on-surface-variant whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5" />
-                        {new Date(t.createdAt).toLocaleDateString('en-IN')}
+                        {new Date(group.createdAt).toLocaleDateString('en-IN')}
                       </div>
                     </td>
-                    <td className="px-5 py-3 font-mono text-xs text-on-surface-variant max-w-[120px] truncate">{t.transactionId || t._id}</td>
-                    <td className="px-5 py-3 font-bold text-primary">{t.rationCardId}</td>
-                    <td className="px-5 py-3 font-semibold">{t.member?.name || 'Unknown'}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-on-surface-variant max-w-[120px] truncate">{group.transactionId}</td>
+                    <td className="px-5 py-3 font-bold text-primary">{group.rationCardId}</td>
+                    <td className="px-5 py-3 font-semibold">{group.member?.name || 'Unknown'}</td>
                     <td className="px-5 py-3">
                       <span className="flex items-center gap-1 text-on-surface-variant">
                         <MapPin className="w-3.5 h-3.5 text-primary flex-shrink-0" />
-                        <span>{t.village || '—'}</span>
-                        {t.district && <span className="text-xs opacity-60">· {t.district}</span>}
+                        <span>{group.village || '—'}</span>
+                        {group.district && <span className="text-xs opacity-60">· {group.district}</span>}
                       </span>
                     </td>
-                    <td className="px-5 py-3 text-right capitalize">{t.grainType}</td>
-                    <td className="px-5 py-3 text-right font-bold">{t.quantity}kg</td>
+                    <td className="px-5 py-3 text-right">
+                      <div className="flex flex-col items-end gap-1">
+                        {group.items.map(item => (
+                          <span key={item._id} className="text-xs font-bold text-on-surface bg-surface-variant/20 px-2 py-0.5 rounded border border-outline-variant/10">
+                            {item.quantity}kg <span className="uppercase opacity-70 text-[10px] ml-1">{item.grainType}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </td>
                     <td className="px-5 py-3">
-                      {statusBadge[t.sync_status] || statusBadge.PENDING}
+                      {statusBadge[group.sync_status] || statusBadge.PENDING}
                     </td>
                   </tr>
                 ))}

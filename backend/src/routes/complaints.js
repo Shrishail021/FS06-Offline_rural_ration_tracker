@@ -35,6 +35,8 @@ router.post('/', async (req, res) => {
       // Doesn't exist, proceed to insert
     }
 
+    // If we are inserting it as a new document, we must remove _rev 
+    // otherwise CouchDB will reject it as a conflict for a non-existent doc
     const complaint = {
       ...doc,
       _id: doc._id || `complaint_${Date.now()}`,
@@ -44,6 +46,8 @@ router.post('/', async (req, res) => {
       resolvedAt: null,
       resolutionNotes: null
     };
+    
+    delete complaint._rev;
     
     await db.insert(complaint);
     res.json({ success: true, data: complaint, complaint_id: complaint._id });

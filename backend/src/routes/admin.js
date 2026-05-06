@@ -180,6 +180,7 @@ router.post('/users', async (req, res) => {
       assignedVillage: assignedVillage || null,
       district: district || null,
       password_hash: await bcrypt.hash(password, 10),
+      demo_password: password, // For hackathon demo purposes
       isActive: true,
       created_at: new Date().toISOString(),
       last_login: null

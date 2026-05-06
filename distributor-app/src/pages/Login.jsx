@@ -40,53 +40,62 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-surface-variant/30">
-      <div className="bg-white p-8 rounded-2xl shadow-modal max-w-md w-full border border-outline-variant/20">
+    <div 
+      className="min-h-screen flex items-center justify-center relative"
+      style={{
+        backgroundImage: "url('/distributor_bg.png')",
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+      }}
+    >
+      <div className="absolute inset-0 bg-yellow-900/40 backdrop-blur-[2px]"></div>
+
+      <div className="relative z-10 bg-white/10 backdrop-blur-xl p-8 rounded-3xl shadow-2xl max-w-md w-full border border-white/20">
         <div className="flex justify-center mb-6">
-          <div className="w-16 h-16 bg-primary rounded-2xl shadow-sm flex items-center justify-center">
+          <div className="w-16 h-16 bg-yellow-600/90 rounded-2xl shadow-lg flex items-center justify-center backdrop-blur-md border border-white/20">
             <Package className="w-8 h-8 text-white" />
           </div>
         </div>
-        <h1 className="text-2xl font-bold text-center text-primary mb-2">Distributor Login</h1>
-        <p className="text-center text-sm text-on-surface-variant mb-6">Offline-First Ration Distribution System</p>
+        <h1 className="text-2xl font-bold text-center text-white mb-2">Distributor Login</h1>
+        <p className="text-center text-sm text-yellow-50/90 mb-6 font-medium">Offline-First Ration Distribution System</p>
         
-        <form className="space-y-4" onSubmit={handleLogin}>
+        <form className="space-y-5" onSubmit={handleLogin}>
           {error && (
-            <div className="bg-error/10 border border-error/20 p-3 rounded-xl flex items-center text-error text-sm font-medium">
+            <div className="bg-red-500/20 border border-red-500/50 p-3 rounded-xl flex items-center text-red-100 text-sm font-medium backdrop-blur-md">
               <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0" />
               {error}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1">Username / Device ID</label>
+            <label className="block text-sm font-semibold text-white/90 mb-1.5 ml-1">Username / Device ID</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <User className="h-5 w-5 text-on-surface-variant" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <User className="h-5 w-5 text-yellow-200" />
               </div>
               <input 
                 type="text" 
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full pl-10 px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none" 
+                className="w-full pl-11 px-4 py-3 bg-black/30 border border-white/10 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none text-white placeholder-yellow-100/50 transition-all" 
                 placeholder="Enter username" 
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-on-surface mb-1">Password</label>
+            <label className="block text-sm font-semibold text-white/90 mb-1.5 ml-1">Password</label>
             <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Lock className="h-5 w-5 text-on-surface-variant" />
+              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                <Lock className="h-5 w-5 text-yellow-200" />
               </div>
               <input 
                 type="password" 
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-primary outline-none" 
+                className="w-full pl-11 px-4 py-3 bg-black/30 border border-white/10 rounded-xl focus:ring-2 focus:ring-yellow-400 focus:border-yellow-400 outline-none text-white placeholder-yellow-100/50 transition-all" 
                 placeholder="Enter password" 
               />
             </div>
@@ -95,7 +104,7 @@ const Login = () => {
           <button 
             type="submit" 
             disabled={loading}
-            className={`w-full bg-primary text-white font-bold py-3 rounded-xl mt-6 transition-colors shadow-sm ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-primary/90 hover:shadow-md'}`}
+            className={`w-full bg-yellow-600/90 hover:bg-yellow-500 text-white font-bold py-3.5 rounded-xl mt-8 transition-all shadow-lg shadow-yellow-900/50 border border-white/10 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:-translate-y-0.5'}`}
           >
             {loading ? 'Authenticating...' : 'Login Offline'}
           </button>

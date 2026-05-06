@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle, Loader2, MessageSquare } from 'lucide-react';
 import axios from 'axios';
 
 const BACKEND = 'http://localhost:5000';
 
 const Complaints = () => {
+  const navigate = useNavigate();
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
@@ -35,6 +37,10 @@ const Complaints = () => {
       setSelectedId(null);
       setNotes('');
       fetchComplaints();
+      
+      if (payload.createReplacementShipment) {
+        navigate('/logistics');
+      }
     } catch (err) { console.error(err); }
   };
 
@@ -123,6 +129,7 @@ const Complaints = () => {
                         {c.batchNumber && <p><span className="font-semibold text-on-surface-variant">Batch No:</span> <span className="font-mono">{c.batchNumber}</span></p>}
                         {c.qualityIssue && <p><span className="font-semibold text-on-surface-variant">Quality Issue:</span> {c.qualityIssue}</p>}
                         {c.grainType && <p><span className="font-semibold text-on-surface-variant">Grain Type:</span> {c.grainType}</p>}
+                        {c.affectedQuantity && <p><span className="font-semibold text-on-surface-variant">Affected Amount:</span> <span className="font-bold text-red-600">{c.affectedQuantity} kg</span></p>}
                         
                         {c.shipmentId && <p><span className="font-semibold text-on-surface-variant">Shipment ID:</span> <span className="font-mono">{c.shipmentId}</span></p>}
                         {c.expectedWeight && <p><span className="font-semibold text-on-surface-variant">Expected vs Actual:</span> {c.expectedWeight}kg vs {c.actualWeight}kg</p>}

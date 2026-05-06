@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { RefreshCw, CheckCircle, XCircle, Clock, Loader2, CloudOff, Cloud } from 'lucide-react';
-import { getAllDistributions, getPendingDistributions, startLiveSync, complaintsDb } from '../db';
+import { getAllDistributions, getPendingDistributions, pushManualSync, complaintsDb } from '../db';
 import OfflineBanner from '../components/OfflineBanner';
 
 const COUCHDB = 'http://admin:shri@127.0.0.1:5984';
@@ -48,13 +48,12 @@ const Sync = () => {
   const handleStartSync = () => {
     if (!isOnline) { setSyncStatus('offline'); return; }
     setSyncStatus('syncing');
-    const handler = startLiveSync((event, info) => {
-      if (event === 'active' || event === 'syncing') setSyncStatus('syncing');
-      else if (event === 'paused') { setSyncStatus('paused'); loadData(); }
+    const handler = pushManualSync((event, info) => {
+      if (event === 'syncing') setSyncStatus('syncing');
+      else if (event === 'complete') { setSyncStatus('idle'); loadData(); setLiveSync(null); }
       else if (event === 'error') setSyncStatus('error');
     });
     setLiveSync(handler);
-    setTimeout(() => { setSyncStatus('paused'); loadData(); }, 3000);
   };
 
   const handleStopSync = () => {
@@ -63,7 +62,7 @@ const Sync = () => {
   };
 
   const statusConfig = {
-    idle: { label: 'Start Live Sync', color: 'bg-primary', icon: <RefreshCw className="w-5 h-5" /> },
+    idle: { label: 'Start Sync', color: 'bg-primary', icon: <RefreshCw className="w-5 h-5" /> },
     syncing: { label: 'Syncing...', color: 'bg-amber-500', icon: <Loader2 className="w-5 h-5 animate-spin" /> },
     paused: { label: 'Sync Paused', color: 'bg-green-600', icon: <Cloud className="w-5 h-5" /> },
     error: { label: 'Sync Error', color: 'bg-red-600', icon: <XCircle className="w-5 h-5" /> },

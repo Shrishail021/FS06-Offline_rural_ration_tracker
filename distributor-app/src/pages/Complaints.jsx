@@ -20,7 +20,7 @@ const Complaints = () => {
     // DEAD_PERSON fields
     deceasedName: '', deceasedAge: '', deceasedAadhaar: '', dateOfDeath: '', relationship: '',
     // WRONG_GRAIN_QUALITY fields
-    batchNumber: '', grainType: '', qualityIssue: '',
+    batchNumber: '', grainType: '', qualityIssue: '', affectedQuantity: '',
     // WEIGHT_MISMATCH fields
     shipmentId: '', expectedWeight: '', actualWeight: '', grainTypeWeight: '',
     // FRAUD fields
@@ -75,16 +75,20 @@ const Complaints = () => {
         sync_status: 'PENDING',
         createdAt: new Date().toISOString()
       };
-      await complaintsDb.put(doc);
+      const putRes = await complaintsDb.put(doc);
+      doc._rev = putRes.rev;
 
       if (isOnline) {
         const synced = await syncComplaint(doc);
-        if (synced) { doc.sync_status = 'SYNCED'; await complaintsDb.put(doc); }
+        if (synced) { 
+          doc.sync_status = 'SYNCED'; 
+          await complaintsDb.put(doc); 
+        }
       }
 
       setMsg({ type: 'success', text: 'Complaint submitted! It will be synced to the server when online.' });
       setComplaintType(null);
-      setForm({ rationCardId: '', deceasedName: '', deceasedAge: '', deceasedAadhaar: '', dateOfDeath: '', relationship: '', batchNumber: '', grainType: '', qualityIssue: '', shipmentId: '', expectedWeight: '', actualWeight: '', grainTypeWeight: '', suspectName: '', fraudDetails: '', duplicateTransactionId: '', description: '', photoBase64: '' });
+      setForm({ rationCardId: '', deceasedName: '', deceasedAge: '', deceasedAadhaar: '', dateOfDeath: '', relationship: '', batchNumber: '', grainType: '', qualityIssue: '', affectedQuantity: '', shipmentId: '', expectedWeight: '', actualWeight: '', grainTypeWeight: '', suspectName: '', fraudDetails: '', duplicateTransactionId: '', description: '', photoBase64: '' });
       loadComplaints();
     } catch (err) {
       setMsg({ type: 'error', text: 'Failed to save complaint.' });
@@ -214,16 +218,22 @@ const Complaints = () => {
                       </select>
                     </div>
                     <div>
+                      <label className="block text-sm font-bold text-on-surface mb-1">Quantity Affected (kg)</label>
+                      <input type="number" required value={form.affectedQuantity} onChange={e => setForm(f => ({ ...f, affectedQuantity: e.target.value }))} placeholder="e.g. 50" className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm" />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                       <label className="block text-sm font-bold text-on-surface mb-1">Batch / Lot Number</label>
                       <input value={form.batchNumber} onChange={e => setForm(f => ({ ...f, batchNumber: e.target.value }))} placeholder="e.g. LOT-2026-045" className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-mono" />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-on-surface mb-1">Quality Issue *</label>
-                    <select required value={form.qualityIssue} onChange={e => setForm(f => ({ ...f, qualityIssue: e.target.value }))} className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm">
-                      <option value="">Select type...</option>
-                      <option>Mouldy / Rotten</option><option>Mixed with stones/debris</option><option>Wrong grain delivered</option><option>Foul odour</option><option>Insect infestation</option><option>Damaged packaging</option>
-                    </select>
+                    <div>
+                      <label className="block text-sm font-bold text-on-surface mb-1">Quality Issue *</label>
+                      <select required value={form.qualityIssue} onChange={e => setForm(f => ({ ...f, qualityIssue: e.target.value }))} className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm">
+                        <option value="">Select type...</option>
+                        <option>Mouldy / Rotten</option><option>Mixed with stones/debris</option><option>Wrong grain delivered</option><option>Foul odour</option><option>Insect infestation</option><option>Damaged packaging</option>
+                      </select>
+                    </div>
                   </div>
                   {/* Photo Upload */}
                   <div>
@@ -373,6 +383,7 @@ const Complaints = () => {
                         </div>
                         {c.deceasedName && <p className="text-sm text-on-surface mt-1">Deceased: <strong>{c.deceasedName}</strong></p>}
                         {c.qualityIssue && <p className="text-sm text-on-surface mt-1">Issue: <strong>{c.qualityIssue}</strong> ({c.grainType})</p>}
+                        {c.affectedQuantity && <p className="text-sm text-red-600 mt-1 font-semibold">Affected: {c.affectedQuantity} kg</p>}
                         {c.expectedWeight && <p className="text-sm text-on-surface mt-1">Expected {c.expectedWeight}kg, received {c.actualWeight}kg</p>}
                         {c.description && <p className="text-xs text-on-surface-variant mt-1">{c.description}</p>}
                         <p className="text-xs text-on-surface-variant mt-1.5">{new Date(c.createdAt).toLocaleString('en-IN')}</p>

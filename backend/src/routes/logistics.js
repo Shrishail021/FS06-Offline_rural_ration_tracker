@@ -37,11 +37,11 @@ router.post('/shipments', async (req, res) => {
     }
 
     const doc = {
-      _id: `ship_${Date.now()}`,
+      _id: req.body._id || `ship_${Date.now()}`,
       grainType, quantity: Number(quantity), fromLocation,
       toVillage, toDistrict, deliveryDate,
       notes, status: 'PENDING',
-      createdAt: new Date().toISOString(),
+      createdAt: req.body.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString()
     };
     await db.insert(doc);

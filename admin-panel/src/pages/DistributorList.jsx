@@ -143,8 +143,19 @@ const DistributorList = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-0.5">Joined</p>
-                    <p className="text-sm font-semibold text-on-surface">{new Date(user.created_at).toLocaleDateString()}</p>
+                    <p className="text-xs font-semibold text-on-surface-variant uppercase tracking-wider mb-0.5">Access Credentials</p>
+                    <div className="flex items-center justify-end gap-2 mt-1">
+                      <p className="text-xs font-mono bg-surface-variant/20 px-2 py-0.5 rounded text-on-surface font-semibold border border-outline-variant/10">PWD: {user.demo_password || 'dist123'}</p>
+                      <button 
+                        onClick={() => {
+                          navigator.clipboard.writeText(`Distributor Name: ${user.name}\nAssigned Village: ${user.assignedVillage}\nDistrict: ${user.district}\n\n--- LOGIN CREDENTIALS ---\nPortal: http://localhost:5174/login\nUsername / Device ID: ${user._id}\nPassword: ${user.demo_password || 'dist123'}`);
+                          alert('Credentials copied to clipboard.');
+                        }}
+                        className="text-[10px] bg-primary/10 text-primary hover:bg-primary/20 px-2 py-1 rounded font-bold uppercase tracking-wider transition-colors"
+                      >
+                        Copy Share
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

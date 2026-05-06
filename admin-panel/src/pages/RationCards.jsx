@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { CreditCard, Search, Plus, CheckCircle, XCircle, Loader2, User, MapPin, RefreshCw } from 'lucide-react';
+import { CreditCard, Search, Plus, CheckCircle, XCircle, Loader2, User, MapPin, RefreshCw, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import { KA_DISTRICTS, getDistricts } from '../locations';
 
@@ -12,7 +12,7 @@ const RationCards = () => {
   const [showForm, setShowForm] = useState(false);
   const [msg, setMsg] = useState(null);
   const defaultDistrict = getDistricts()[0];
-  const [form, setForm] = useState({ cardNumber: '', headName: '', district: defaultDistrict, village: KA_DISTRICTS[defaultDistrict]?.[0] || '', members: [{ name: '', age: '', aadhaar: '', alive: true }] });
+  const [form, setForm] = useState({ cardNumber: '', headName: '', district: defaultDistrict, village: KA_DISTRICTS[defaultDistrict]?.[0] || '', members: [{ name: '', age: '', aadhaar: '', alive: true, isHead: true }] });
 
   const fetchCards = async () => {
     setLoading(true);
@@ -32,7 +32,7 @@ const RationCards = () => {
       setMsg({ type: 'success', text: `Ration card ${form.cardNumber} created!` });
       setShowForm(false);
       const dd = getDistricts()[0];
-      setForm({ cardNumber: '', headName: '', district: dd, village: KA_DISTRICTS[dd]?.[0] || '', members: [{ name: '', age: '', aadhaar: '', alive: true }] });
+      setForm({ cardNumber: '', headName: '', district: dd, village: KA_DISTRICTS[dd]?.[0] || '', members: [{ name: '', age: '', aadhaar: '', alive: true, isHead: true }] });
       fetchCards();
     } catch (err) {
       setMsg({ type: 'error', text: err.response?.data?.message || 'Failed to create card' });
@@ -56,8 +56,31 @@ const RationCards = () => {
     } catch (err) { console.error(err); }
   };
 
-  const addMember = () => setForm(f => ({ ...f, members: [...f.members, { name: '', age: '', aadhaar: '', alive: true }] }));
+  const removeMember = async (card, memberIdx) => {
+    const member = card.members[memberIdx];
+    if (!window.confirm(`Permanently remove "${member.name}" from this ration card? This action cannot be undone.`)) return;
+    try {
+      const updatedMembers = card.members.filter((_, i) => i !== memberIdx);
+      await axios.put(`${BACKEND}/api/admin/ration-cards/${card._id}`, { members: updatedMembers });
+      setMsg({ type: 'success', text: `${member.name} has been removed from the ration card.` });
+      setTimeout(() => setMsg(null), 3500);
+      fetchCards();
+    } catch (err) {
+      setMsg({ type: 'error', text: 'Failed to remove member.' });
+      setTimeout(() => setMsg(null), 3500);
+    }
+  };
+
+  const addMember = () => setForm(f => ({ ...f, members: [...f.members, { name: '', age: '', aadhaar: '', alive: true, isHead: false }] }));
   const updateMember = (idx, field, val) => setForm(f => ({ ...f, members: f.members.map((m, i) => i === idx ? { ...m, [field]: val } : m) }));
+  // When Head of Family name changes, auto-sync to the first member slot
+  const handleHeadNameChange = (val) => {
+    setForm(f => ({
+      ...f,
+      headName: val,
+      members: f.members.map((m, i) => i === 0 ? { ...m, name: val } : m)
+    }));
+  };
 
   const filtered = cards.filter(c =>
     c._id?.toLowerCase().includes(search.toLowerCase()) ||
@@ -95,7 +118,7 @@ const RationCards = () => {
               </div>
               <div>
                 <label className="block text-sm font-semibold text-on-surface mb-1">Head of Family</label>
-                <input required value={form.headName} onChange={e => setForm({...form, headName: e.target.value})} placeholder="Full name" className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
+                <input required value={form.headName} onChange={e => handleHeadNameChange(e.target.value)} placeholder="Full name" className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-semibold text-on-surface mb-1">District</label>
@@ -116,10 +139,32 @@ const RationCards = () => {
                 <button type="button" onClick={addMember} className="text-xs text-primary font-bold hover:underline">+ Add Member</button>
               </div>
               {form.members.map((m, i) => (
-                <div key={i} className="grid grid-cols-3 gap-3 mb-2">
-                  <input value={m.name} onChange={e => updateMember(i, 'name', e.target.value)} placeholder="Member name" className="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" />
+                <div key={i} className="grid grid-cols-3 gap-3 mb-2 items-center">
+                  <div className="relative">
+                    <input
+                      value={m.name}
+                      onChange={e => i !== 0 && updateMember(i, 'name', e.target.value)}
+                      readOnly={i === 0}
+                      placeholder={i === 0 ? 'Auto-filled from Head of Family' : 'Member name'}
+                      className={`w-full px-3 py-2 border rounded-xl text-sm outline-none ${
+                        i === 0
+                          ? 'bg-amber-50 border-amber-200 text-amber-900 font-semibold cursor-not-allowed'
+                          : 'border-outline-variant focus:ring-2 focus:ring-primary'
+                      }`}
+                    />
+                    {i === 0 && (
+                      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-amber-100 text-amber-700 px-1.5 py-0.5 rounded-full">HEAD</span>
+                    )}
+                  </div>
                   <input type="number" value={m.age} onChange={e => updateMember(i, 'age', e.target.value)} placeholder="Age" className="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" />
-                  <input value={m.aadhaar} onChange={e => updateMember(i, 'aadhaar', e.target.value)} placeholder="Aadhaar (masked)" className="px-3 py-2 border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" />
+                  <div className="flex items-center gap-2">
+                    <input value={m.aadhaar} onChange={e => updateMember(i, 'aadhaar', e.target.value)} placeholder="Aadhaar (masked)" className="flex-1 px-3 py-2 border border-outline-variant rounded-xl text-sm focus:ring-2 focus:ring-primary outline-none" />
+                    {i > 0 && (
+                      <button type="button" onClick={() => setForm(f => ({ ...f, members: f.members.filter((_, mi) => mi !== i) }))} className="text-red-400 hover:text-red-600 flex-shrink-0" title="Remove member">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -164,6 +209,15 @@ const RationCards = () => {
                             <button onClick={() => toggleMemberAlive(card, i)} className="ml-1 underline text-primary text-xs" title={m.alive !== false ? 'Mark Deceased' : 'Reactivate'}>
                               {m.alive !== false ? '✕' : '↩'}
                             </button>
+                            {m.alive === false && (
+                              <button
+                                onClick={() => removeMember(card, i)}
+                                className="ml-0.5 text-red-500 hover:text-red-700 transition-colors"
+                                title="Remove from ration card permanently"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            )}
                           </div>
                         ))}
                       </div>

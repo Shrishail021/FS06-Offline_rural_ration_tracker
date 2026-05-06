@@ -14,6 +14,7 @@ const Dashboard = () => {
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchDashboardStats = async () => {
     setLoading(true);
@@ -26,6 +27,7 @@ const Dashboard = () => {
       setData(dashRes.data.data);
       const allDist = distRes.data.data || [];
       setPendingCount(allDist.filter(d => d.sync_status === 'PENDING').length);
+      setLastUpdated(new Date());
     } catch (err) {
       setError('Could not reach the backend server. Is it running on port 5000?');
       console.error(err);
@@ -34,7 +36,12 @@ const Dashboard = () => {
     }
   };
 
-  useEffect(() => { fetchDashboardStats(); }, []);
+  useEffect(() => {
+    fetchDashboardStats();
+    // Auto-refresh every 30 seconds for realtime feel
+    const interval = setInterval(fetchDashboardStats, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
 
 
@@ -55,6 +62,11 @@ const Dashboard = () => {
             Refresh
           </button>
         </header>
+        {lastUpdated && (
+          <p className="text-xs text-on-surface-variant mb-4 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5" /> Live · Last updated: {lastUpdated.toLocaleTimeString('en-IN')} · Auto-refreshes every 30s
+          </p>
+        )}
 
         {loading && (
           <div className="flex justify-center items-center py-24">

@@ -273,4 +273,33 @@ router.get('/dashboard', async (req, res) => {
   }
 });
 
+// POST /api/admin/monthly-report — Receive monthly distribution report from distributor
+router.post('/monthly-report', async (req, res) => {
+  try {
+    const db = await getDb('monthly_reports');
+    const report = {
+      _id: `report_${req.body.village}_${req.body.month}_${req.body.year}_${Date.now()}`,
+      ...req.body,
+      receivedAt: new Date().toISOString(),
+    };
+    await db.insert(report);
+    res.json({ success: true, message: 'Monthly report received.', reportId: report._id });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/admin/monthly-reports — List all monthly reports
+router.get('/monthly-reports', async (req, res) => {
+  try {
+    const db = await getDb('monthly_reports');
+    const result = await db.list({ include_docs: true, descending: true });
+    const reports = result.rows.filter(r => !r.id.startsWith('_design')).map(r => r.doc);
+    res.json({ success: true, data: reports });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
+

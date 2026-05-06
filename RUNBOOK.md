@@ -87,12 +87,12 @@ Runs on: **`http://localhost:5173`**
 
 Users are stored in CouchDB's `admin_users` database. If the database is wiped, run `node seed.js` in the backend folder to recreate them.
 
-### 📦 Distributor App (`http://localhost:5174/login`)
+### 📦 Distributor App (`https://localhost:5174/login`)
 - **Username**: `village_dist`
 - **Password**: `password123`
 - **Role**: `DISTRIBUTOR` — can record offline distributions and raise complaints
 
-### 🛡️ State Admin Portal (`http://localhost:5173/login`)
+### 🛡️ State Admin Portal (`https://localhost:5173/login`)
 - **Username**: `shri_admin`
 - **Password**: `password123`
 - **Role**: `STATE_ADMIN` — can view analytics and manage the system

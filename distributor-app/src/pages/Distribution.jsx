@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Package, CheckCircle, AlertTriangle, Search, UserCheck, X, Wifi, WifiOff, MapPin, Fingerprint, Loader2 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Package, CheckCircle, AlertTriangle, Search, UserCheck, X, Wifi, WifiOff, MapPin, Fingerprint, Loader2, FileBarChart2 } from 'lucide-react';
 import { saveBasketOffline, searchRationCards, checkAlreadyDistributed, cardsDb } from '../db';
 import axios from 'axios';
 
@@ -160,8 +161,9 @@ const Distribution = () => {
   return (
     <div className="min-h-screen bg-surface-variant/30">
       <div className="p-6 max-w-3xl mx-auto">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-on-surface">Distribution</h1>
+        <div className="mb-6 flex justify-between items-start">
+          <div>
+            <h1 className="text-2xl font-bold text-on-surface">Distribution</h1>
           <div className="flex items-center gap-2 mt-1">
             {assignedVillage
               ? <p className="text-sm text-on-surface-variant flex items-center gap-1">
@@ -173,6 +175,10 @@ const Distribution = () => {
               : <p className="text-sm text-on-surface-variant">Search a ration card to begin. Works fully offline.</p>
             }
           </div>
+          </div>
+          <Link to="/monthly-report" className="flex items-center gap-2 px-4 py-2.5 bg-white border border-outline-variant/20 rounded-xl text-sm font-bold text-on-surface hover:shadow-md transition-all shadow-sm flex-shrink-0">
+            <FileBarChart2 className="w-4 h-4 text-primary" /> Monthly Report
+          </Link>
         </div>
 
         {/* Status Messages */}

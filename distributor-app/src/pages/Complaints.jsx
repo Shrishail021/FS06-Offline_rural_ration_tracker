@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Upload, Loader2, Send, ArrowLeft, Camera } from 'lucide-react';
-import { complaintsDb, syncComplaint, searchRationCards } from '../db';
+import { AlertTriangle, CheckCircle, Upload, Loader2, Send, ArrowLeft, Camera, Package } from 'lucide-react';
+import { complaintsDb, syncComplaint, shipmentsDb } from '../db';
 import OfflineBanner from '../components/OfflineBanner';
 
 const COMPLAINT_TYPES = [
@@ -35,6 +35,7 @@ const Complaints = () => {
   const [submitting, setSubmitting] = useState(false);
   const [msg, setMsg] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [recentShipments, setRecentShipments] = useState([]);
   const fileRef = useRef();
 
   useEffect(() => {
@@ -43,6 +44,7 @@ const Complaints = () => {
     window.addEventListener('online', on);
     window.addEventListener('offline', off);
     loadComplaints();
+    loadRecentShipments();
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off); };
   }, []);
 
@@ -55,6 +57,25 @@ const Complaints = () => {
     finally { setLoading(false); }
   };
 
+  const loadRecentShipments = async () => {
+    try {
+      const result = await shipmentsDb.allDocs({ include_docs: true, descending: true });
+      const docs = result.rows.filter(r => !r.id.startsWith('_design')).map(r => r.doc);
+      // Group by base shipment ID, take last 10 unique shipments
+      const seen = new Set();
+      const grouped = [];
+      for (const s of docs) {
+        const baseId = s._id.includes('_') && !s._id.startsWith('ship_') ? s._id.split('_')[0] : s._id;
+        if (!seen.has(baseId)) {
+          seen.add(baseId);
+          grouped.push({ baseId, toVillage: s.toVillage, deliveryDate: s.deliveryDate, status: s.status, grainType: s.grainType });
+          if (grouped.length >= 10) break;
+        }
+      }
+      setRecentShipments(grouped);
+    } catch (e) { console.error(e); }
+  };
+
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -65,7 +86,7 @@ const Complaints = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!complaintType || !form.rationCardId) return;
+    if (!complaintType) return;
     setSubmitting(true);
     try {
       const doc = {
@@ -161,12 +182,6 @@ const Complaints = () => {
                 <span className={`text-xs font-bold px-3 py-1.5 rounded-full border ${selectedType?.color}`}>{selectedType?.label}</span>
               </div>
 
-              {/* Common: Ration Card */}
-              <div className="mb-5">
-                <label className="block text-sm font-bold text-on-surface mb-1">Ration Card Number *</label>
-                <input required value={form.rationCardId} onChange={e => setForm(f => ({ ...f, rationCardId: e.target.value }))} placeholder="e.g. RC-001" className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-mono" />
-              </div>
-
               {/* ─── DEAD_PERSON Form ─── */}
               {complaintType === 'DEAD_PERSON' && (
                 <div className="space-y-4">
@@ -224,8 +239,21 @@ const Complaints = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-bold text-on-surface mb-1">Batch / Lot Number</label>
-                      <input value={form.batchNumber} onChange={e => setForm(f => ({ ...f, batchNumber: e.target.value }))} placeholder="e.g. LOT-2026-045" className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm font-mono" />
+                      <label className="block text-sm font-bold text-on-surface mb-1">Recent Shipment *</label>
+                      {recentShipments.length > 0 ? (
+                        <select required value={form.batchNumber} onChange={e => setForm(f => ({ ...f, batchNumber: e.target.value }))} className="w-full px-4 py-3 border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary outline-none text-sm">
+                          <option value="">Select shipment...</option>
+                          {recentShipments.map(s => (
+                            <option key={s.baseId} value={s.baseId}>
+                              ...{s.baseId.slice(-8)} · {s.toVillage} · {s.status}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <div className="flex items-center gap-2 px-4 py-3 border border-outline-variant/40 rounded-xl bg-surface-variant/20 text-xs text-on-surface-variant">
+                          <Package className="w-4 h-4" /> No recent shipments found locally
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className="block text-sm font-bold text-on-surface mb-1">Quality Issue *</label>

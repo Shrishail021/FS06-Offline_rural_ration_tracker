@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Activity, Package, RefreshCw, AlertTriangle, LogOut, Truck, X, User, MapPin, Wifi, WifiOff } from 'lucide-react';
+import { Activity, Package, RefreshCw, AlertTriangle, LogOut, Truck, X, User, MapPin, Wifi, WifiOff, FileBarChart2 } from 'lucide-react';
 import { getPendingDistributions } from '../db';
 
 const Sidebar = () => {
@@ -49,6 +49,7 @@ const Sidebar = () => {
     { path: '/distribution', label: 'Distributions', icon: Package },
     { path: '/shipments', label: 'Incoming Shipments', icon: Truck },
     { path: '/sync', label: 'Sync Data', icon: RefreshCw },
+    { path: '/monthly-report', label: 'Monthly Report', icon: FileBarChart2 },
     { path: '/complaints', label: 'Complaints', icon: AlertTriangle },
   ];
 

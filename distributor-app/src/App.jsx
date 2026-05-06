@@ -6,6 +6,7 @@ import Distribution from './pages/Distribution';
 import Sync from './pages/Sync';
 import Complaints from './pages/Complaints';
 import Shipments from './pages/Shipments';
+import MonthlyReport from './pages/MonthlyReport';
 import Sidebar from './components/Sidebar';
 import OfflineBanner from './components/OfflineBanner';
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="/distribution" element={<PrivateRoute><DistributorLayout><Distribution /></DistributorLayout></PrivateRoute>} />
           <Route path="/shipments" element={<PrivateRoute><DistributorLayout><Shipments /></DistributorLayout></PrivateRoute>} />
           <Route path="/sync" element={<PrivateRoute><DistributorLayout><Sync /></DistributorLayout></PrivateRoute>} />
+          <Route path="/monthly-report" element={<PrivateRoute><DistributorLayout><MonthlyReport /></DistributorLayout></PrivateRoute>} />
           <Route path="/complaints" element={<PrivateRoute><DistributorLayout><Complaints /></DistributorLayout></PrivateRoute>} />
           <Route path="/" element={<Navigate to="/login" replace />} />
         </Routes>
